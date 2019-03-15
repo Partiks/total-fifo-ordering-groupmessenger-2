@@ -22,8 +22,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.ListIterator;
 
 import static android.content.ContentValues.TAG;
 
@@ -36,10 +39,11 @@ import static android.content.ContentValues.TAG;
  */
 public class GroupMessengerActivity extends Activity {
     static String P_TAG="PartiksTag";
+    static String P_TAG2="LongTag";
     static String[] remotePorts = {"11108","11112","11116","11120","11124"};
     static final int SERVER_PORT = 10000;
-    private static int running_id=0;
     private static int myIndex=0;
+
     String myPort=null;
     String portStr=null;
 
@@ -102,12 +106,13 @@ public class GroupMessengerActivity extends Activity {
         //partiks code end
     }
 
-
     //partiks added ServerTask and ClientTask classes from PA-1 code
 
     private class ServerTask extends AsyncTask<ServerSocket, String, Void> {
 
-
+        ArrayList<Message> msgs = new ArrayList<Message>();
+        private int running_id=0;
+        private int max_group_id=0;
 
         @Override
         protected Void doInBackground(ServerSocket... sockets) {
@@ -141,23 +146,96 @@ public class GroupMessengerActivity extends Activity {
                     while ((temp = in.readLine()) != null) {
                         if ("AAI_GAYU".equals(temp)) {
                             break;
-                        } else if("ID AAPO LA".equals(temp)){
+                        }
+                        else if ("ID AAPO LA".equals(temp)) {
                             //ID finding logic here
+                            int max = max_group_id;
+                            if(running_id > max_group_id){
+                                max = running_id;
+                            }
                             running_id++;
-                            Log.e(P_TAG, "SERVER: FINDING ID ON SERVER SIDE: " + running_id);
+                            max+=1;
+                            temp = in.readLine();
+                            String sender = in.readLine();
+                            Log.e(P_TAG, "SERVER: FINDING ID ON SERVER SIDE: " + running_id + " for msg: " + temp + " from sender: " + sender);
+
                             out.println("MARO PROPOSED ID: ");
-                            out.println(running_id);
-                        } else if("NAVO MSG".equals(temp)){
+                            out.println(max);
+                            msgs.add( new Message( Float.parseFloat( ((String) Integer.toString(running_id)) + "."+myIndex ), temp, Integer.parseInt(sender) ));
+                            Collections.sort(msgs, Message.id);
+                        }
+                        else if ("NAVO MSG".equals(temp)) {
+                            Log.e(P_TAG, "NEW EXPERIMENT: MAX_GROUP_ID = "+max_group_id);
                             String[] msg_obj = new String[2];
                             msg_obj[0] = in.readLine();
                             msg_obj[1] = in.readLine();
+                            if(max_group_id < Float.parseFloat(msg_obj[0])){
+                                max_group_id = (int) (Float.parseFloat(msg_obj[0])*100)/100;
+                                Log.e(P_TAG, "NEW EXPERIMENT: MAX_GROUP_ID = "+max_group_id);
+                            }
                             Log.e(P_TAG, "SERVER: MSG_OBJECT CREATED ID: " + msg_obj[0] + " MSG: " + msg_obj[1]);
-                            publishProgress(msg_obj);
+                            int m_index = -1;
+                            for(Message m: msgs){
+                                if(m.getMessage() != null && m.getMessage().equals(msg_obj[1])){
+                                    m_index = msgs.indexOf(m);
+                                }
+                            }
+                            Message m = new Message(Float.parseFloat(msg_obj[0]), msg_obj[1], msgs.get(m_index).getSender(), 1);
+                            msgs.set(m_index, m);
+                            ListIterator<Message> iterator = msgs.listIterator();
+                            /*
+                            Log.e(P_TAG2,"------------------------------------------------------");
+                            while(iterator.hasNext()){
+                                Message m2 = iterator.next();
+                                Log.e(P_TAG2, "MSG ID: " + m2.getMsg_id());
+                                Log.e(P_TAG2, "MSG CONTENT: " + m2.getMessage());
+                                Log.e(P_TAG2, "MSG Deliverable: " + m2.getDeliverable());
+                                Log.e(P_TAG2, "MSG SEND: " + m2.getSend());
+                            }
+                            Log.e(P_TAG2,"------------------------------------------------------"); */
+                            Collections.sort(msgs, Message.id);
+                            //Message m = new Message(Float.parseFloat(msg_obj[0]), msg_obj[1], msgs.get(m_index).getSender(), 1);
+                            //msgs.indexOf();
+                            iterator = msgs.listIterator();
+                            /*
+                            Log.e(P_TAG2,"------------------------------------------------------");
+                            while(iterator.hasNext()){
+                                Message m2 = iterator.next();
+                                Log.e(P_TAG2, "MSG ID: " + m2.getMsg_id());
+                                Log.e(P_TAG2, "MSG CONTENT: " + m2.getMessage());
+                                Log.e(P_TAG2, "MSG Deliverable: " + m2.getDeliverable());
+                                Log.e(P_TAG2, "MSG SEND: " + m2.getSend());
+                            }
+                            Log.e(P_TAG2,"------------------------------------------------------"); */
+                            int msgsToSend=0;
+                            for(int i=0; i< msgs.size();i++){
+                                if(msgs.get(i).getDeliverable() == 1){
+                                    msgsToSend++;
+                                }else {
+                                    break;
+                                }
+                            }
+                            Log.e(P_TAG, "SERVER: MSGSTOSEND CALCULATION = " + msgsToSend);
+                            String msgsToDeliver[] = new String[2];
+                            for(int i=0; i<msgs.size() && i<msgsToSend; i++){
+                                if(msgs.get(i).getSend() == true){
+                                    Log.e(P_TAG2, "Ignoring" + msgs.get(i).getMsg_id() + " " + msgs.get(i).getMessage() );
+                                    continue;
+                                }else if(msgs.get(i).getSend() == false && i<msgsToSend){
+                                    msgsToDeliver[0]=Float.toString(msgs.get(i).getMsg_id());
+                                    msgsToDeliver[1]=msgs.get(i).getMessage();
+                                    msgs.get(i).setSend(true);
+                                    Log.e(P_TAG2, "<<<<<<<<<<< PUBLISHING " + msgsToDeliver[0] + " " + msgsToDeliver[1]);
+                                    new OnPTestClickListener((TextView) findViewById(R.id.textView1), msgsToDeliver[0], msgsToDeliver[1], getContentResolver(), "group");
+                                    publishProgress(msgsToDeliver);
+                                }
+                            }
+                            //publishProgress(msg_obj);
 
                         }
-                        else{
+                        else {
                             msgReceived = temp;
-                            publishProgress(msgReceived);
+                            //publishProgress(msgReceived);
                         }
                     }
                     out.println("SERVER_AAI_GAYU");
@@ -165,9 +243,11 @@ public class GroupMessengerActivity extends Activity {
                     out.close();
                     socket.close();
 
-                } catch (IOException e) {
+                }
+                catch (IOException e) {
                     e.printStackTrace();
                 }
+
             }
 
         }
@@ -176,7 +256,7 @@ public class GroupMessengerActivity extends Activity {
             Log.e(P_TAG, "SERVER: PROGRESS UPDATE BEHAVIOR >>>>>>>>>>>>> WITH ID: " + " " + strings[0] + " AND MSG:  " + strings[1]);
             String idReceived = strings[0].trim();
             String strReceived = strings[1].trim();
-            new OnPTestClickListener((TextView) findViewById(R.id.textView1), idReceived, strReceived, getContentResolver(), "group");
+
             TextView localTextView = (TextView) findViewById(R.id.textView1);
             localTextView.append(strReceived + "\n");
             return;
@@ -204,11 +284,13 @@ public class GroupMessengerActivity extends Activity {
 
                 for(int i=0; i<test_avds;i++) {
                     Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}), Integer.parseInt(remotePorts[i]));
-                    socket.setSoTimeout(5*1000);
+                    //socket.setSoTimeout(5*1000);
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                     out.println("ID AAPO LA");
+                    out.println(msgs[0]);
+                    out.println(myIndex);
                     out.println("AAI_GAYU");
                     String temp;
                     while((temp = in.readLine())!=null){
@@ -217,7 +299,7 @@ public class GroupMessengerActivity extends Activity {
                             String id_gen = temp+"."+(i+1);
                             id_gen += myIndex;
                             proposals[i] = Float.parseFloat(id_gen);
-                            Log.e(P_TAG, "CLIENT: GOT ID " + temp + " FROM SERVER: " + remotePorts[i] + " "+ id_gen + " msg: "+ msgs[0] + " float = " + proposals[i]+" \n\n");
+                            //Log.e(P_TAG, "CLIENT: GOT ID " + temp + " FROM SERVER: " + remotePorts[i] + " "+ id_gen + " msg: "+ msgs[0] + " float = " + proposals[i]+" \n\n");
                         }
                         if("SERVER_AAI_GAYU".equals(temp)){
                             break;
@@ -246,7 +328,7 @@ public class GroupMessengerActivity extends Activity {
 
                 for(int i=0; i<test_avds;i++) {
                     Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}), Integer.parseInt(remotePorts[i]));
-                    socket.setSoTimeout(5*1000);
+                    //socket.setSoTimeout(5*1000);
                     //socket.connect(new InetSocketAddress(10.0.2.2, Integer.parseInt(remotePorts[i])), 1000);
                     String msgToSend = msgs[0];
                     /*

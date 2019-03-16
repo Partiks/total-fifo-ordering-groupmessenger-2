@@ -142,8 +142,10 @@ public class GroupMessengerActivity extends Activity {
             ServerSocket serverSocket = sockets[0];
 
             Socket socket = null;
+            int found = 0;
 
             String sender = "";
+            ListIterator<Message> itr;
 
             /*
              * TODO: Fill in your server code that receives messages and passes them
@@ -157,6 +159,16 @@ public class GroupMessengerActivity extends Activity {
                 while (true) {
                     try {
                         socket = serverSocket.accept();
+                        if(remotePorts.size() == 4 && found == 0){
+                            String arr[]= new String[]{"11108","11112","11116","11120","11124"};
+                            for(int z=0;z<5;z++){
+                                if(!remotePorts.contains(arr[z])){
+                                    failed_avd = arr[z];
+                                    Log.e(P_TAG, "SERVER FOUND CRASHED INSTANCE = " + failed_avd);
+                                    found = 1;
+                                }
+                            }
+                        }
 
                         //Log.e(P_TAG, "Server Socket Timeout Value: " + socket.getSoTimeout());
                         Log.e(P_TAG, "SERVER CONNECTED !!!  REMOTEPORT SIZE = " + remotePorts.size());
@@ -178,7 +190,7 @@ public class GroupMessengerActivity extends Activity {
                                     remotePorts.remove(failed_avd);
                                     Log.e(P_TAG, "<<<<<<<<<<<<<< INSIDE IF REMOVED " + failed_avd  + "from remorePorts = " + getRemotePorts() + " remotePort size = " + remotePorts.size());
                                 }
-                                ListIterator<Message> itr = msgs.listIterator();
+                                itr = msgs.listIterator();
                                 //marking all messages from failed_avd as deliverable so that they dont mess up with other messages' delivery
                                 Log.e(P_TAG2, "-------RESETTING ALL FAILED_AVD MESSAGES TO DELIVERABLE ");
                                 while (itr.hasNext()) {
@@ -243,7 +255,7 @@ public class GroupMessengerActivity extends Activity {
                                 msg_obj[0] = in.readLine();
                                 msg_obj[1] = in.readLine();
                                 if(send == failed_avd){
-                                    ListIterator<Message> itr = msgs.listIterator();
+                                    itr = msgs.listIterator();
                                     Log.e(P_TAG2, "------------------------------------------------------");
                                     while (itr.hasNext()) {
                                         Message m2 = itr.next();
@@ -254,7 +266,9 @@ public class GroupMessengerActivity extends Activity {
                                         }
                                     }
                                 }else{
-                                    ListIterator<Message> itr = msgs.listIterator();
+
+
+                                    itr = msgs.listIterator();
                                     Log.e(P_TAG2, "------------------------------------------------------");
                                     while (itr.hasNext()) {
                                         Message m2 = itr.next();
@@ -448,7 +462,7 @@ public class GroupMessengerActivity extends Activity {
                                 String id_gen = temp + "." + (i + 1);
                                 id_gen += myIndex;
                                 proposals[i] = Float.parseFloat(id_gen);
-                                Log.e(P_TAG, "CLIENT: GOT ID " + temp + " FROM SERVER: " +   " " + id_gen + " msg: " + msgs[0] + " float = " + proposals[i] + " \n\n");
+                                Log.e(P_TAG, "CLIENT: GOT ID " + temp + " FROM SERVER: " +  remotePorts.get(i) + " " + id_gen + " msg: " + msgs[0] + " float = " + proposals[i] + " \n\n");
                             }
                             if ("SERVER_AAI_GAYU".equals(temp)) {
                                 break;
@@ -474,7 +488,7 @@ public class GroupMessengerActivity extends Activity {
 
 
                     for (i = 0; i < remotePorts.size(); i++) {
-                        //Log.e(P_TAG, "CLIENT ATTEMPTING TO CONNECT TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for client side msg " + msgs[0]);
+                        Log.e(P_TAG, "CLIENT ATTEMPTING TO CONNECT TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for sending client side msg " + msgs[0]);
                         Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}), Integer.parseInt(remotePorts.get(i)));
 
                         //socket.connect(new InetSocketAddress(10.0.2.2, Integer.parseInt(remotePorts[i])), 1000);
@@ -507,6 +521,7 @@ public class GroupMessengerActivity extends Activity {
 //                            Log.e(P_TAG, "Client Says server" + remotePorts.get(i) + " is ready for sending client side msg: " + msgToSend);
                             while ((temp = in.readLine()) != null) {
                                 if ("SERVER_AAI_GAYU".equals(temp)) {
+                                    Log.e(P_TAG, "CLIENT SUCCESSFULLY SENT MSG TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for sending client side msg " + msgs[0] + " loop iteration " + i);
                                     break;
                                 }
                             }
@@ -518,10 +533,12 @@ public class GroupMessengerActivity extends Activity {
                         out.close();
                         in.close();
                         socket.close();
+                        Thread.sleep(500);
                     }
 
                     if(end_flag == 0){
                         // multicasting that this server has failed so that server deletes the messages received from this server
+                        /*
 
                                 Log.e(P_TAG, "IN THE ENDGAME NOW, ENDFLAG HAS BEEN SET - " + remotePorts.size() + " failed_avd: " + failed_avd);
                                 for (int j = 0; j < remotePorts.size(); j++) {
@@ -543,7 +560,8 @@ public class GroupMessengerActivity extends Activity {
                                     out2.close();
                                     in2.close();
                                     socket2.close();
-                                }
+                                    Thread.sleep(500);
+                                }   */
 
                     }
 

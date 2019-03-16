@@ -3,18 +3,18 @@ package edu.buffalo.cse.cse486586.groupmessenger2;
 public class Message{
     float msg_id;
     String message;
-    int sender;
+    String sender;
     int deliverable;
     boolean send = false;
 
-    public Message(float id, String msg, int sender){
+    public Message(float id, String msg, String sender){
         this.msg_id = id;
         this.message = msg;
         this.sender = sender;
         this.deliverable = 0;
     }
 
-    public Message(float id, String msg, int sender, int deliverable){
+    public Message(float id, String msg, String sender, int deliverable){
         this.msg_id = id;
         this.message = msg;
         this.sender = sender;
@@ -54,11 +54,11 @@ public class Message{
         this.message = message;
     }
 
-    public int getSender() {
+    public String getSender() {
         return sender;
     }
 
-    public void setSender(int sender) {
+    public void setSender(String sender) {
         this.sender = sender;
     }
 

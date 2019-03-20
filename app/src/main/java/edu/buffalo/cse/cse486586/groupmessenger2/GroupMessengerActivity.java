@@ -57,6 +57,7 @@ public class GroupMessengerActivity extends Activity {
     private static int myIndex=0;
     static final int timeout = 5000;
     static String failed_avd="";
+    ArrayList<Message> msgs = new ArrayList<Message>();
 
     String myPort=null;
     String portStr=null;
@@ -132,7 +133,6 @@ public class GroupMessengerActivity extends Activity {
 
     private class ServerTask extends AsyncTask<ServerSocket, String, Void> {
 
-        ArrayList<Message> msgs = new ArrayList<Message>();
         private int running_id=0;
         private int max_group_id=0;
 
@@ -154,12 +154,12 @@ public class GroupMessengerActivity extends Activity {
             //partiks code start
             //Parth Patel. UB Person name/number: parthras/50290764
             //reference for Java Socket API code: https://www.geeksforgeeks.org/socket-programming-in-java/
-            //reference for imporoved Java Socket API code: https://www.baeldung.com/a-guide-to-java-sockets
+            //reference for improved Java Socket API code: https://www.baeldung.com/a-guide-to-java-sockets
             //if (myIndex != 5) {
                 while (true) {
                     try {
                         socket = serverSocket.accept();
-                        if(remotePorts.size() == 4 && found == 0){
+                        /* if(remotePorts.size() == 4 && found == 0){
                             String arr[]= new String[]{"11108","11112","11116","11120","11124"};
                             for(int z=0;z<5;z++){
                                 if(!remotePorts.contains(arr[z])){
@@ -168,7 +168,7 @@ public class GroupMessengerActivity extends Activity {
                                     found = 1;
                                 }
                             }
-                        }
+                        } */
 
                         //Log.e(P_TAG, "Server Socket Timeout Value: " + socket.getSoTimeout());
                         Log.e(P_TAG, "SERVER CONNECTED !!!  REMOTEPORT SIZE = " + remotePorts.size());
@@ -176,6 +176,7 @@ public class GroupMessengerActivity extends Activity {
                         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                         String temp;
+                        sender = in.readLine();
                         while ((temp = in.readLine()) != null) {
                             Log.e(P_TAG, "SERVER READ A LINE:  = "+temp);
                             if ("AAI_GAYU".equals(temp)) {
@@ -183,6 +184,7 @@ public class GroupMessengerActivity extends Activity {
                             }
 
 
+                            /*
                             else if("FAILED_AVD".equals(temp)){
                                 String failed_avd = in.readLine();
                                 Log.e(P_TAG, "<<<<<<<<<<<< OUTSIDE IF SERVER DETECTED " + failed_avd  + " from remorePorts = " + getRemotePorts() + " remotePort size = " + remotePorts.size());
@@ -228,8 +230,8 @@ public class GroupMessengerActivity extends Activity {
                                     }
                                 }
 
-
                             }
+                            */
                             else if ("ID AAPO LA".equals(temp)) {
                                 //ID finding logic here
                                 int max = max_group_id;
@@ -238,7 +240,7 @@ public class GroupMessengerActivity extends Activity {
                                 }
                                 running_id++;
                                 max += 1;
-                                sender = in.readLine();
+                                //sender = in.readLine();
                                 //String send = in.readLine();
                                 //sender = Integer.parseInt(send);
                                 temp = in.readLine();
@@ -248,15 +250,20 @@ public class GroupMessengerActivity extends Activity {
                                 out.println(max);
                                 msgs.add(new Message(Float.parseFloat(((String) Integer.toString(running_id)) + "." + myIndex), temp, sender));
                                 Collections.sort(msgs, Message.id);
-                            } else if ("NAVO MSG".equals(temp)) {
+                            }
+
+                            else if ("NAVO MSG".equals(temp)) {
                                 //Log.e(P_TAG, "NEW EXPERIMENT: MAX_GROUP_ID = " + max_group_id);
                                 String[] msg_obj = new String[2];
-                                String send = in.readLine();
+                                //String send = in.readLine();
                                 msg_obj[0] = in.readLine();
                                 msg_obj[1] = in.readLine();
-                                if(send == failed_avd){
+                                if(sender.equals(failed_avd) || msg_obj[0] == null || msg_obj[1] == null){
+                                    Log.e(P_TAG, "SERVER FOUND CRASHED AVD IN CONFIRMED ID SECTION --------------------->>>>>>>>>> " + sender);
+                                    remotePorts.remove(sender);
+                                    failed_avd=sender;
                                     itr = msgs.listIterator();
-                                    Log.e(P_TAG2, "------------------------------------------------------");
+                                    Log.e(P_TAG2, "------------------------------------------------------ SENDER WAS THE FAILED_AVD");
                                     while (itr.hasNext()) {
                                         Message m2 = itr.next();
                                         if(m2.getSender().equals(failed_avd)){
@@ -265,20 +272,11 @@ public class GroupMessengerActivity extends Activity {
                                             msgs.set(m_index, m);
                                         }
                                     }
-                                }else{
+                                }
+                                else{
 
-
-                                    itr = msgs.listIterator();
-                                    Log.e(P_TAG2, "------------------------------------------------------");
-                                    while (itr.hasNext()) {
-                                        Message m2 = itr.next();
-                                        if(m2.getSender().equals(failed_avd)){
-                                            int m_index = msgs.indexOf(m2);
-                                            msgs.get(m_index).setDeliverable(1);
-                                        }
-                                    }
-                                    if (remotePorts.contains(send)) {
-                                        Log.e(P_TAG, "REMOTE PORTS HAS THE SENDER: " + send);
+                                    if (remotePorts.contains(sender) ) {
+                                        Log.e(P_TAG, "REMOTE PORTS HAS THE SENDER: " + sender);
 
                                         if (max_group_id < Float.parseFloat(msg_obj[0])) {
                                             max_group_id = (int) (Float.parseFloat(msg_obj[0]) * 100) / 100;
@@ -287,7 +285,7 @@ public class GroupMessengerActivity extends Activity {
                                         Log.e(P_TAG, "SERVER: MSG_OBJECT CREATED ID: " + msg_obj[0] + " MSG: " + msg_obj[1]);
                                         int m_index = -1;
 
-                                        ListIterator<Message> iterator = msgs.listIterator();
+                                        /*ListIterator<Message> iterator = msgs.listIterator();
 
                                         Log.e(P_TAG2, "------------------------------------------------------");
                                         while (iterator.hasNext()) {
@@ -299,7 +297,7 @@ public class GroupMessengerActivity extends Activity {
                                             Log.e(P_TAG2, "MSG SEND:        " + m2.getSend());
                                             Log.e(P_TAG2, "<>");
                                         }
-                                        Log.e(P_TAG2, "------------------------------------------------------");
+                                        Log.e(P_TAG2, "------------------------------------------------------"); */
 
                                         Log.e(P_TAG, "Server-1 error: Tried to find msg: " + msg_obj[1]);
                                         for (Message m : msgs) {
@@ -319,14 +317,12 @@ public class GroupMessengerActivity extends Activity {
 
 
                                         Collections.sort(msgs, Message.id);
-                                        //Message m = new Message(Float.parseFloat(msg_obj[0]), msg_obj[1], msgs.get(m_index).getSender(), 1);
-                                        //msgs.indexOf();
 
-                                        iterator = msgs.listIterator();
+                                        itr = msgs.listIterator();
 
                                         Log.e(P_TAG2, "------------------------------------------------------");
-                                        while (iterator.hasNext()) {
-                                            Message m2 = iterator.next();
+                                        while (itr.hasNext()) {
+                                            Message m2 = itr.next();
                                             Log.e(P_TAG2, "MSG ID:          " + m2.getMsg_id());
                                             Log.e(P_TAG2, "MSG CONTENT:     " + m2.getMessage());
                                             Log.e(P_TAG2, "MSG Deliverable: " + m2.getDeliverable());
@@ -385,6 +381,14 @@ public class GroupMessengerActivity extends Activity {
 
         }
 
+        protected boolean checkForFailure(String str, String sender){
+            if(str == null || str.equals("")){
+                Log.e(P_TAG, "----------------------------Server "+ myPort+" checkForFailure detected crash of server: " + sender);
+                return false;
+            }
+            return true;
+        }
+
         protected void onProgressUpdate(String...strings) {
             //Log.e(P_TAG, "SERVER: PROGRESS UPDATE BEHAVIOR >>>>>>>>>>>>> WITH ID: " + " " + strings[0] + " AND MSG:  " + strings[1]);
             //String idReceived = strings[0].trim();
@@ -410,12 +414,13 @@ public class GroupMessengerActivity extends Activity {
         PrintWriter out;
         BufferedReader in;
         int i = 0;
+        ListIterator<Message> c_itr;
                 //id_found_flag=0;
         float proposals[] = new float[]{0, 0, 0, 0, 0};
         int end_flag  = 1;
 
         @Override
-        protected Void doInBackground(String... msgs) {
+        protected Void doInBackground(String... c_msgs) {
             // reference: http://java.candidjava.com/tutorial/find-the-index-of-the-largest-number-in-an-array.htm
             //
             //if(myIndex != 5) {
@@ -433,18 +438,25 @@ public class GroupMessengerActivity extends Activity {
                         int flag = 1;
                         //when this flag is 1 it means server is alive and communicating, when 0, that means this instance of loop contains the crashed avd id
 
-                        out.println("ID AAPO LA");
                         out.println(myPort);
-                        out.println(msgs[0]);
+                        out.println("ID AAPO LA");
+                        out.println(c_msgs[0]);
                         out.println("AAI_GAYU");
                         String temp = in.readLine();
 
                         if(temp == null && remotePorts.size() == 5){
 
-                            Log.e(P_TAG,"-----------------------------------PARTIKS WON OVER SOCKETS !!!! crashed server = " + remotePorts.get(i) + " for msg = " + msgs[0]);
+                            Log.e(P_TAG,"-----------------------------------PARTIKS WON OVER SOCKETS !!!! crashed server = " + remotePorts.get(i) + " for msg = " + c_msgs[0]);
                             // multicasting that this server has failed so that server deletes the messages received from this server
                                 failed_avd = remotePorts.get(i);
                                 remotePorts.remove(i);
+                            //trying new logic: sorting the msgs list from the client first, then sending others.
+
+                            for(int j=0;j<msgs.size();j++){
+                                if(msgs.get(j).getSender().equals(failed_avd)){
+                                    msgs.get(j).setDeliverable(1);
+                                }
+                            }
 
                             i-=1;
                             flag = 0;
@@ -462,7 +474,7 @@ public class GroupMessengerActivity extends Activity {
                                 String id_gen = temp + "." + (i + 1);
                                 id_gen += myIndex;
                                 proposals[i] = Float.parseFloat(id_gen);
-                                Log.e(P_TAG, "CLIENT: GOT ID " + temp + " FROM SERVER: " +  remotePorts.get(i) + " " + id_gen + " msg: " + msgs[0] + " float = " + proposals[i] + " \n\n");
+                                Log.e(P_TAG, "CLIENT: GOT ID " + temp + " FROM SERVER: " +  remotePorts.get(i) + " " + id_gen + " msg: " + c_msgs[0] + " float = " + proposals[i] + " \n\n");
                             }
                             if ("SERVER_AAI_GAYU".equals(temp)) {
                                 break;
@@ -475,6 +487,9 @@ public class GroupMessengerActivity extends Activity {
                         in.close();
                         socket.close();
                     }
+
+
+                    //-------------------------- ALL PROPOSALS ARE COLLECTED ---------------------------------------------------------------------
                     float max = proposals[0];
 
                     for (int j = 0; j < proposals.length; j++) {
@@ -483,17 +498,74 @@ public class GroupMessengerActivity extends Activity {
                         }
                     }
                     //id_found_flag = 1;
-                    Log.e(P_TAG, "CLIENT: PICKING UP ID VALUE = " + max + " for msg: " + msgs[0] + " IMP <<<<<<<<<<<<<<<<<<<<<<<\n\n");
-                    // we got ID till now, time to send the message
+                    Log.e(P_TAG, "CLIENT: PICKING UP ID VALUE = " + max + " for msg: " + c_msgs[0] + " IMP <<<<<<<<<<<<<<<<<<<<<<<\n\n");
+                    // we got ID till now, time to sort the message list of sender first, then send the message to other processes (AVDs)
+                    //msgs.add( new Message(max, c_msgs[0], myPort, 1));
+                    for(int j=0;j<msgs.size();j++){
+                        if(msgs.get(j).getMessage().equals(c_msgs[0])){
+                            msgs.get(j).setMsg_id(max);
+                            msgs.get(j).setDeliverable(1);
+                            break;
+                        }
+                    }
+                    Log.e(P_TAG2, "CLIENT ------------------------------------------------------");
+                    for(int j=0; j<msgs.size(); j++){
+                        Log.e(P_TAG2, "MSG ID:          " + msgs.get(j).getMsg_id());
+                        Log.e(P_TAG2, "MSG CONTENT:     " + msgs.get(j).getMessage());
+                        Log.e(P_TAG2, "MSG Deliverable: " + msgs.get(j).getDeliverable());
+                        Log.e(P_TAG2, "MSG Sender:      " + msgs.get(j).getSender());
+                        Log.e(P_TAG2, "MSG SEND:        " + msgs.get(j).getSend());
+                        Log.e(P_TAG2, "<>");
+                    }
+                    Log.e(P_TAG2, "CLIENT ------------------------------------------------------");
+                    Collections.sort(msgs, Message.id);
+                    /*
+                    Log.e(P_TAG2, "CLIENT ------------------------------------------------------");
+                    for(int j=0; j<msgs.size(); j++){
+                        Log.e(P_TAG2, "MSG ID:          " + msgs.get(j).getMsg_id());
+                        Log.e(P_TAG2, "MSG CONTENT:     " + msgs.get(j).getMessage());
+                        Log.e(P_TAG2, "MSG Deliverable: " + msgs.get(j).getDeliverable());
+                        Log.e(P_TAG2, "MSG Sender:      " + msgs.get(j).getSender());
+                        Log.e(P_TAG2, "MSG SEND:        " + msgs.get(j).getSend());
+                        Log.e(P_TAG2, "<>");
+                    }
+                    Log.e(P_TAG2, "CLIENT ------------------------------------------------------");
+                    int msgsToSend = 0;
+                    for (int j = 0; j < msgs.size(); j++) {
+                        if (msgs.get(j).getDeliverable() == 1) {
+                            msgsToSend++;
+                        } else {
+                            break;
+                        }
+                    }
+                    Log.e(P_TAG, "SERVER: MSGSTOSEND CALCULATION = " + msgsToSend);
+                    String msgsToDeliver[] = new String[2];
+                    for (int j = 0; j < msgs.size() && j < msgsToSend; j++) {
+                        if (msgs.get(j).getSend() == true) {
+                            Log.e(P_TAG2, "Ignoring" + msgs.get(j).getMsg_id() + " " + msgs.get(j).getMessage());
+                            continue;
+                        } else if (msgs.get(j).getSend() == false && msgs.get(j).getDeliverable() == 1) {
+                            msgsToDeliver[0] = Float.toString(msgs.get(j).getMsg_id());
+                            msgsToDeliver[1] = msgs.get(j).getMessage();
+                            msgs.get(j).setSend(true);
+                            Log.e(P_TAG2, "<<<<<<<<<<< PUBLISHING FROM CLIENT:"+ myPort+ " ID: " + msgsToDeliver[0] + " " + msgsToDeliver[1]);
+                            new OnPTestClickListener((TextView) findViewById(R.id.textView1), msgsToDeliver[0], msgsToDeliver[1], getContentResolver(), "group");
+                        }
+                    } */
 
 
+                    // ---------------------------------------------------------- ACTUAL MULTICASTING OF CONFIRMED ID MESSAGE ----------------------------------------------------------
                     for (i = 0; i < remotePorts.size(); i++) {
-                        Log.e(P_TAG, "CLIENT ATTEMPTING TO CONNECT TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for sending client side msg " + msgs[0]);
+                        /*
+                        if(remotePorts.get(i).equals(myPort)){
+                            continue;
+                        } */
+                        Log.e(P_TAG, "CLIENT ATTEMPTING TO CONNECT TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for sending client side msg " + c_msgs[0]);
                         Socket socket = new Socket(InetAddress.getByAddress(new byte[]{10, 0, 2, 2}), Integer.parseInt(remotePorts.get(i)));
 
                         //socket.connect(new InetSocketAddress(10.0.2.2, Integer.parseInt(remotePorts[i])), 1000);
 
-                        String msgToSend = msgs[0];
+                        String msgToSend = c_msgs[0];
                         /*
                          * TODO: Fill in your client code that sends out a message.
                          */
@@ -508,11 +580,11 @@ public class GroupMessengerActivity extends Activity {
                         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
                         //broadcasting message with its respective ID
-                        out.println("NAVO MSG");
                         //if (out.checkError()) {
                             //Log.e(P_TAG, "TESTING OUTPUT STREAMS NOT ABLE TO WRITE TO " + remotePorts.get(i) + " is ready for sending client side msg: " + msgToSend);
                         //}
                         out.println(myPort);
+                        out.println("NAVO MSG");
                         out.println(max);
                         out.println(msgToSend);
                         out.println("AAI_GAYU");
@@ -521,7 +593,7 @@ public class GroupMessengerActivity extends Activity {
 //                            Log.e(P_TAG, "Client Says server" + remotePorts.get(i) + " is ready for sending client side msg: " + msgToSend);
                             while ((temp = in.readLine()) != null) {
                                 if ("SERVER_AAI_GAYU".equals(temp)) {
-                                    Log.e(P_TAG, "CLIENT SUCCESSFULLY SENT MSG TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for sending client side msg " + msgs[0] + " loop iteration " + i);
+                                    Log.e(P_TAG, "CLIENT SUCCESSFULLY SENT MSG TO " + remotePorts.get(i) + " REMOTEPORT SIZE = " + remotePorts.size() + " for sending client side msg " + c_msgs[0] + " loop iteration " + i);
                                     break;
                                 }
                             }
